@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>느린아이 선긋기</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap');
+        *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0; padding: 0;
+            background: #F5F1EB;
+            min-height: 100dvh;
+            display: flex; justify-content: center; align-items: flex-start;
+            user-select: none;
+        }
+        .app {
+            width: 100%; max-width: 480px;
+            min-height: 100dvh;
+            background: white;
+            padding: 24px 20px;
+            padding-top: max(24px, env(safe-area-inset-top));
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+            display: flex; flex-direction: column;
+        }
+        @media (min-width: 768px) {
+            body { align-items: center; padding: 32px; }
+            .app {
+                max-width: 560px; min-height: auto;
+                border-radius: 32px;
+                box-shadow: 0 8px 48px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+                padding: 44px 40px;
+            }
+        }
+        .hidden { display: none !important; }
+
+        /* Header */
+        .app-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+        .app-header h1 { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.025em; margin: 0; line-height: 1.15; }
+
+        /* Section label */
+        .sec-label { font-size: .875rem; font-weight: 700; color: #4A4035; margin: 0 0 10px; }
+
+        /* Type grid */
+        .type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+        .type-card {
+            border: 2.5px solid #E8E2DA; border-radius: 16px;
+            padding: 12px 6px 10px; background: white;
+            cursor: pointer; text-align: center; transition: all .15s;
+        }
+        .type-card:active { transform: scale(.95); }
+        .type-card.sel { border-color: #F0901E; background: #FFF8F0; }
+        .type-card .t-icon { height: 34px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+        .type-card .t-name { font-size: .82rem; font-weight: 700; color: #4A4035; }
+
+        /* Segment buttons */
+        .row-btns { display: flex; gap: 8px; margin-bottom: 14px; }
+        .seg-btn {
+            flex: 1; padding: 11px 0;
+            border: 2.5px solid #E8E2DA; border-radius: 12px;
+            background: white; font-family: 'Noto Sans KR', sans-serif;
+            font-size: .875rem; font-weight: 700; color: #8C8070;
+            cursor: pointer; transition: all .15s;
+        }
+        .seg-btn:active { transform: scale(.97); }
+        .seg-btn.sel-blue  { border-color: #2E7FD9; background: #EEF5FF; color: #2E7FD9; }
+        .seg-btn.sel-green { border-color: #5BC886; background: #EDFAF2; color: #1A7A3A; }
+
+        /* Start button */
+        .start-btn {
+            width: 100%; padding: 16px 0; border-radius: 16px; border: none;
+            background: linear-gradient(135deg, #F0A050, #F07070);
+            color: white; font-family: 'Noto Sans KR', sans-serif;
+            font-size: 1.1rem; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(240,112,112,.3);
+            transition: transform .1s, box-shadow .1s;
+        }
+        .start-btn:active { transform: scale(.97); box-shadow: none; }
+
+        /* Game nav */
+        .game-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+        .btn-back {
+            width: 36px; height: 36px; border-radius: 10px;
+            border: 2px solid #E8E2DA; background: white;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1.1rem; color: #8C8070; flex-shrink: 0;
+        }
+        .btn-back:active { background: #F5F1EB; }
+        .nav-title { flex: 1; font-size: 1rem; font-weight: 700; color: #4A4035; }
+        .badge { font-size: .75rem; font-weight: 600; color: #8C8070; background: #F5F1EB; border-radius: 8px; padding: 4px 10px; }
+
+        /* Canvas wrap */
+        .canvas-wrap {
+            border: 2.5px solid #E8E2DA; border-radius: 20px;
+            overflow: hidden; margin-bottom: 14px; background: #FAFAF8;
+        }
+        .canvas-wrap.portrait { width: 190px; margin-left: auto; margin-right: auto; }
+        canvas { display: block; touch-action: none; }
+
+        /* Instructions / result */
+        .instr { text-align: center; font-size: .875rem; font-weight: 600; color: #B8AD9E; margin-bottom: 12px; min-height: 22px; }
+        .result-wrap { min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+        .res-msg { font-size: 1.25rem; font-weight: 700; text-align: center; }
+        .res-msg.ok   { color: #5BC886; }
+        .res-msg.ng   { color: #F07070; }
+        .res-msg.info { color: #B8AD9E; font-size: .9rem; font-weight: 600; }
+        .res-acc { font-size: .875rem; font-weight: 600; color: #8C8070; }
+        .res-btns { display: flex; gap: 10px; width: 100%; margin-top: 8px; }
+        .btn-retry {
+            flex: 1; padding: 13px 0; border-radius: 12px;
+            border: 2.5px solid #E8E2DA; background: white;
+            font-family: 'Noto Sans KR', sans-serif; font-size: .9rem;
+            font-weight: 700; color: #4A4035; cursor: pointer; transition: transform .1s;
+        }
+        .btn-retry:active { transform: scale(.97); }
+        .btn-change {
+            flex: 1; padding: 13px 0; border-radius: 12px; border: none;
+            background: linear-gradient(135deg, #F0A050, #F07070);
+            font-family: 'Noto Sans KR', sans-serif; font-size: .9rem;
+            font-weight: 700; color: white; cursor: pointer; transition: transform .1s;
+        }
+        .btn-change:active { transform: scale(.97); }
+
+        /* Animations */
+        @keyframes popIn { 0%{transform:scale(.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1);opacity:1} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .pop-in  { animation: popIn  .35s ease-out; }
+        .fade-up { animation: fadeUp .3s  ease-out; }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- Home view -->
+    <div id="home-view">
+        <div class="app-header">
+            <svg viewBox="0 0 120 100" width="60" height="50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="30" cy="72" rx="10" ry="6" fill="#F2DC8C" stroke="#3A9B6A" stroke-width="2" transform="rotate(-20 30 72)"/>
+                <ellipse cx="78" cy="76" rx="10" ry="6" fill="#F2DC8C" stroke="#3A9B6A" stroke-width="2" transform="rotate(15 78 76)"/>
+                <ellipse cx="28" cy="54" rx="9" ry="5.5" fill="#F2DC8C" stroke="#3A9B6A" stroke-width="2" transform="rotate(-10 28 54)"/>
+                <path d="M18 60 L10 55" stroke="#F2DC8C" stroke-width="4" stroke-linecap="round"/>
+                <ellipse cx="55" cy="58" rx="35" ry="20" fill="#F5E6C8" stroke="#3A9B6A" stroke-width="2"/>
+                <ellipse cx="52" cy="42" rx="32" ry="28" fill="#7EDCAA" stroke="#3A9B6A" stroke-width="2.5"/>
+                <path d="M52 18 L42 32 L42 48 L52 58 L62 48 L62 32 Z" fill="none" stroke="#3A9B6A" stroke-width="1.3" opacity=".35"/>
+                <line x1="42" y1="32" x2="24" y2="38" stroke="#3A9B6A" stroke-width="1.3" opacity=".35"/>
+                <line x1="62" y1="32" x2="80" y2="38" stroke="#3A9B6A" stroke-width="1.3" opacity=".35"/>
+                <line x1="42" y1="48" x2="26" y2="56" stroke="#3A9B6A" stroke-width="1.3" opacity=".35"/>
+                <line x1="62" y1="48" x2="78" y2="56" stroke="#3A9B6A" stroke-width="1.3" opacity=".35"/>
+                <ellipse cx="42" cy="26" rx="6" ry="4" fill="white" opacity=".35" transform="rotate(-15 42 26)"/>
+                <ellipse cx="62" cy="36" rx="4" ry="3" fill="white" opacity=".2"/>
+                <ellipse cx="92" cy="40" rx="17" ry="15" fill="#F5E6C8" stroke="#3A9B6A" stroke-width="2.5"/>
+                <ellipse cx="82" cy="72" rx="10" ry="6" fill="#F2DC8C" stroke="#3A9B6A" stroke-width="2" transform="rotate(10 82 72)"/>
+                <circle cx="99" cy="35" r="4" fill="white" stroke="#3A9B6A" stroke-width="1.5"/>
+                <circle cx="100" cy="34" r="2.5" fill="#3A9B6A"/>
+                <circle cx="101" cy="33" r="1" fill="white"/>
+                <circle cx="100" cy="44" r="3.5" fill="#F0A050" opacity=".4"/>
+                <path d="M94 46 Q98 50 103 46" fill="none" stroke="#3A9B6A" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h1>
+                <span style="color:#2E7FD9;">느린</span><span style="color:#F0901E;">아이</span><br>
+                <span style="color:#4A4035;">선긋기</span>
+            </h1>
+        </div>
+
+        <p class="sec-label">어떤 선을 그을까요?</p>
+        <div class="type-grid" id="type-grid"></div>
+
+        <div id="h-dir-sec">
+            <p class="sec-label">시작 방향</p>
+            <div class="row-btns" id="h-dir-row">
+                <button class="seg-btn sel-blue" data-dir="left">&#8592; 왼쪽에서</button>
+                <button class="seg-btn"          data-dir="right">오른쪽에서 &#8594;</button>
+            </div>
+        </div>
+        <div id="v-dir-sec" class="hidden">
+            <p class="sec-label">시작 방향</p>
+            <div class="row-btns" id="v-dir-row">
+                <button class="seg-btn sel-blue" data-dir="top">위에서 &#8595;</button>
+                <button class="seg-btn"          data-dir="bottom">아래에서 &#8593;</button>
+            </div>
+        </div>
+
+        <p class="sec-label">난이도</p>
+        <div class="row-btns" id="diff-row">
+            <button class="seg-btn"           data-diff="easy">쉬움</button>
+            <button class="seg-btn sel-green" data-diff="normal">보통</button>
+            <button class="seg-btn"           data-diff="hard">어려움</button>
+        </div>
+
+        <button class="start-btn" id="start-btn">시작하기</button>
+    </div>
+
+    <!-- Game view -->
+    <div id="game-view" class="hidden">
+        <div class="game-nav">
+            <button class="btn-back" id="btn-back">&#8592;</button>
+            <span class="nav-title" id="nav-title"></span>
+            <span class="badge" id="diff-badge"></span>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap">
+            <canvas id="gc"></canvas>
+        </div>
+        <p class="instr" id="instr">S에서 시작하여 E까지 선을 그으세요</p>
+        <div class="result-wrap" id="result-wrap"></div>
+    </div>
+
+</div>
+<script>
+// ── State ──
+const G = {
+    type: 'straight', dir: 'left', diff: 'normal',
+    drawing: false, over: false,
+    pts: [], path: [], failed: false,
+};
+
+const TYPES = [
+    { id: 'straight', name: '직선',     vert: false },
+    { id: 'diagonal', name: '사선',     vert: false },
+    { id: 'vertical', name: '수직',     vert: true  },
+    { id: 'curve',    name: '곡선',     vert: false },
+    { id: 'zigzag',   name: '지그재그', vert: false },
+    { id: 'spring',   name: '스프링',   vert: false },
+];
+
+const TOL      = { easy: 44, normal: 26, hard: 14 };
+const DIFF_LBL = { easy: '쉬움', normal: '보통', hard: '어려움' };
+const DIR_LBL  = { left: '왼→오', right: '오→왼', top: '위→아래', bottom: '아래→위' };
+const TYPE_LBL = { straight:'직선', diagonal:'사선', vertical:'수직', curve:'곡선', zigzag:'지그재그', spring:'스프링' };
+
+// ── Icon renderers ──
+function drawIcon(id, c, w, h) {
+    c.strokeStyle = '#C8C0B4'; c.lineWidth = 3;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath();
+    if (id === 'straight') {
+        c.moveTo(5, h/2); c.lineTo(w-5, h/2);
+    } else if (id === 'diagonal') {
+        c.moveTo(5, h-6); c.lineTo(w-5, 6);
+    } else if (id === 'vertical') {
+        c.moveTo(w/2, 5); c.lineTo(w/2, h-5);
+    } else if (id === 'curve') {
+        for (let i=0;i<=60;i++) {
+            const t=i/60;
+            i===0 ? c.moveTo(5+(w-10)*t, h/2+Math.sin(t*Math.PI*2)*(h/2-5))
+                  : c.lineTo(5+(w-10)*t, h/2+Math.sin(t*Math.PI*2)*(h/2-5));
+        }
+    } else if (id === 'zigzag') {
+        [[5,h/2],[w*.25,5],[w*.5,h-5],[w*.75,5],[w-5,h/2]].forEach((p,i) =>
+            i===0 ? c.moveTo(p[0],p[1]) : c.lineTo(p[0],p[1]));
+    } else if (id === 'spring') {
+        for (let i=0;i<=80;i++) {
+            const t=i/80;
+            i===0 ? c.moveTo(5+(w-10)*t, h/2+Math.sin(t*Math.PI*6)*(h/2-5))
+                  : c.lineTo(5+(w-10)*t, h/2+Math.sin(t*Math.PI*6)*(h/2-5));
+        }
+    }
+    c.stroke();
+}
+
+// ── DOM ──
+const homeView   = document.getElementById('home-view');
+const gameView   = document.getElementById('game-view');
+const canvasWrap = document.getElementById('canvas-wrap');
+const gc         = document.getElementById('gc');
+const ctx        = gc.getContext('2d');
+
+// Build type grid
+(function() {
+    const grid = document.getElementById('type-grid');
+    TYPES.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'type-card' + (t.id === G.type ? ' sel' : '');
+        card.dataset.type = t.id;
+
+        const ic = document.createElement('canvas');
+        ic.width = 60; ic.height = t.vert ? 40 : 32;
+        ic.style.display = 'block'; ic.style.margin = '0 auto';
+        drawIcon(t.id, ic.getContext('2d'), 60, ic.height);
+
+        const wrap = document.createElement('div');
+        wrap.className = 't-icon'; wrap.appendChild(ic);
+
+        const nm = document.createElement('div');
+        nm.className = 't-name'; nm.textContent = t.name;
+
+        card.appendChild(wrap); card.appendChild(nm);
+        grid.appendChild(card);
+    });
+})();
+
+// Type selection
+document.getElementById('type-grid').addEventListener('click', e => {
+    const card = e.target.closest('.type-card');
+    if (!card) return;
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('sel'));
+    card.classList.add('sel');
+    G.type = card.dataset.type;
+    const isV = TYPES.find(t => t.id === G.type).vert;
+    document.getElementById('h-dir-sec').classList.toggle('hidden', isV);
+    document.getElementById('v-dir-sec').classList.toggle('hidden', !isV);
+    G.dir = isV ? 'top' : 'left';
+    document.querySelectorAll('#h-dir-row .seg-btn, #v-dir-row .seg-btn').forEach(b => b.classList.remove('sel-blue'));
+    document.querySelector(isV ? '#v-dir-row .seg-btn' : '#h-dir-row .seg-btn').classList.add('sel-blue');
+});
+
+// Direction
+['h-dir-row','v-dir-row'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+        const b = e.target.closest('.seg-btn'); if (!b) return;
+        document.querySelectorAll('#'+id+' .seg-btn').forEach(x => x.classList.remove('sel-blue'));
+        b.classList.add('sel-blue'); G.dir = b.dataset.dir;
+    });
+});
+
+// Difficulty
+document.getElementById('diff-row').addEventListener('click', e => {
+    const b = e.target.closest('.seg-btn'); if (!b) return;
+    document.querySelectorAll('#diff-row .seg-btn').forEach(x => x.classList.remove('sel-green'));
+    b.classList.add('sel-green'); G.diff = b.dataset.diff;
+});
+
+// Start
+document.getElementById('start-btn').addEventListener('click', () => {
+    homeView.classList.add('hidden');
+    gameView.classList.remove('hidden');
+    document.getElementById('nav-title').textContent = TYPE_LBL[G.type] + '  ' + DIR_LBL[G.dir];
+    document.getElementById('diff-badge').textContent = DIFF_LBL[G.diff];
+    document.getElementById('result-wrap').innerHTML = '';
+    document.getElementById('instr').textContent = 'S에서 시작하여 E까지 선을 그으세요';
+    requestAnimationFrame(() => { initCanvas(); genPath(); resetDraw(); render(); });
+});
+
+document.getElementById('btn-back').addEventListener('click', () => {
+    gameView.classList.add('hidden'); homeView.classList.remove('hidden');
+});
+
+// ── Canvas ──
+let LW = 0, LH = 0;
+
+function initCanvas() {
+    const isV = TYPES.find(t => t.id === G.type).vert;
+    const dpr  = window.devicePixelRatio || 1;
+
+    if (isV) {
+        canvasWrap.classList.add('portrait');
+        LW = canvasWrap.clientWidth - 4;
+        LH = Math.min(Math.floor(window.innerHeight * 0.54), 420);
+    } else {
+        canvasWrap.classList.remove('portrait');
+        LW = canvasWrap.clientWidth - 4;
+        LH = 210;
+    }
+
+    gc.width  = Math.round(LW * dpr);
+    gc.height = Math.round(LH * dpr);
+    gc.style.width  = LW + 'px';
+    gc.style.height = LH + 'px';
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr, dpr);
+}
+
+// ── Path generation ──
+const STEPS = 300;
+
+function genPath() {
+    const w=LW, h=LH, cx=w/2, cy=h/2, m=48;
+    const pts=[], T=G.type, D=G.dir;
+
+    switch(T) {
+        case 'straight': {
+            const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
+            for(let i=0;i<=STEPS;i++){const t=i/STEPS; pts.push({x:sx+(ex-sx)*t,y:cy});}
+            break;
+        }
+        case 'diagonal': {
+            const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
+            const sy=h*.16, ey=h*.84;
+            for(let i=0;i<=STEPS;i++){const t=i/STEPS; pts.push({x:sx+(ex-sx)*t,y:sy+(ey-sy)*t});}
+            break;
+        }
+        case 'vertical': {
+            const sy=D==='top'?m:h-m, ey=D==='top'?h-m:m;
+            for(let i=0;i<=STEPS;i++){const t=i/STEPS; pts.push({x:cx,y:sy+(ey-sy)*t});}
+            break;
+        }
+        case 'curve': {
+            const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
+            for(let i=0;i<=STEPS;i++){
+                const t=i/STEPS, rt=D==='left'?t:1-t;
+                pts.push({x:sx+(ex-sx)*t, y:cy+Math.sin(rt*Math.PI*2)*(h*.30)});
+            }
+            break;
+        }
+        case 'zigzag': {
+            const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
+            const amp=h*.30, peaks=4;
+            for(let i=0;i<=STEPS;i++){
+                const t=i/STEPS, rt=D==='left'?t:1-t;
+                const ph=(rt*peaks)%1;
+                pts.push({x:sx+(ex-sx)*t, y:cy+(ph<.5?(4*ph-1):(3-4*ph))*amp});
+            }
+            break;
+        }
+        case 'spring': {
+            const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
+            for(let i=0;i<=STEPS;i++){
+                const t=i/STEPS, rt=D==='left'?t:1-t;
+                pts.push({x:sx+(ex-sx)*t, y:cy+Math.sin(rt*Math.PI*6)*(h*.28)});
+            }
+            break;
+        }
+    }
+    G.path = pts;
+}
+
+function resetDraw() { G.drawing=false; G.over=false; G.pts=[]; G.failed=false; }
+
+// ── Geometry ──
+function offsetPath(path, d) {
+    return path.map((p,i) => {
+        let tx,ty;
+        if(i===0){tx=path[1].x-p.x;ty=path[1].y-p.y;}
+        else if(i===path.length-1){tx=p.x-path[i-1].x;ty=p.y-path[i-1].y;}
+        else{tx=path[i+1].x-path[i-1].x;ty=path[i+1].y-path[i-1].y;}
+        const l=Math.hypot(tx,ty)||1;
+        return {x:p.x+(-ty/l)*d, y:p.y+(tx/l)*d};
+    });
+}
+
+function distToPath(px,py) {
+    let min=Infinity;
+    for(let i=0;i<G.path.length-1;i++){
+        const a=G.path[i],b=G.path[i+1];
+        const dx=b.x-a.x,dy=b.y-a.y,l2=dx*dx+dy*dy;
+        const t=l2===0?0:Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/l2));
+        min=Math.min(min,Math.hypot(px-(a.x+t*dx),py-(a.y+t*dy)));
+    }
+    return min;
+}
+
+function near(px,py,pt,r){ return Math.hypot(px-pt.x,py-pt.y)<r; }
+
+// ── Render ──
+function render() {
+    const w=LW,h=LH,tol=TOL[G.diff],path=G.path;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle='#FAFAF8'; ctx.fillRect(0,0,w,h);
+    if(!path.length) return;
+
+    const up=offsetPath(path,-tol), lo=offsetPath(path,tol);
+
+    // Band fill
+    ctx.beginPath();
+    ctx.moveTo(up[0].x,up[0].y);
+    up.forEach(p=>ctx.lineTo(p.x,p.y));
+    lo.slice().reverse().forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.closePath();
+    ctx.fillStyle='rgba(91,200,134,.13)'; ctx.fill();
+
+    // Band borders
+    [up,lo].forEach(pts=>{
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x,pts[0].y);
+        pts.forEach(p=>ctx.lineTo(p.x,p.y));
+        ctx.strokeStyle='rgba(91,200,134,.55)';
+        ctx.lineWidth=1.5; ctx.setLineDash([6,5]); ctx.stroke(); ctx.setLineDash([]);
+    });
+
+    // Center guide
+    ctx.beginPath();
+    ctx.moveTo(path[0].x,path[0].y);
+    path.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle='rgba(180,168,156,.45)';
+    ctx.lineWidth=1; ctx.setLineDash([4,7]); ctx.stroke(); ctx.setLineDash([]);
+
+    // User path
+    if(G.pts.length>1){
+        ctx.beginPath();
+        ctx.moveTo(G.pts[0].x,G.pts[0].y);
+        G.pts.forEach(p=>ctx.lineTo(p.x,p.y));
+        ctx.strokeStyle=G.failed?'#F07070':'#5BC886';
+        ctx.lineWidth=4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    }
+
+    // S / E markers
+    mkr(path[0].x,path[0].y,'#5BC886','S');
+    mkr(path[path.length-1].x,path[path.length-1].y,'#F07070','E');
+}
+
+function mkr(x,y,color,label){
+    ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle='white'; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.fillStyle='white'; ctx.font='bold 11px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label,x,y);
+}
+
+// ── Input ──
+function getPos(e){
+    const r=gc.getBoundingClientRect();
+    const s=e.touches?e.touches[0]:e;
+    return {x:(s.clientX-r.left)*(LW/r.width), y:(s.clientY-r.top)*(LH/r.height)};
+}
+
+gc.addEventListener('touchstart', onStart, {passive:false});
+gc.addEventListener('touchmove',  onMove,  {passive:false});
+gc.addEventListener('touchend',   onEnd,   {passive:false});
+gc.addEventListener('mousedown',  onStart);
+gc.addEventListener('mousemove',  onMove);
+gc.addEventListener('mouseup',    onEnd);
+
+function onStart(e){
+    e.preventDefault(); if(G.over) return;
+    const p=getPos(e);
+    if(!near(p.x,p.y,G.path[0],32)){ hint('S 지점에서 시작하세요'); return; }
+    G.drawing=true; G.pts=[p]; G.failed=false;
+    document.getElementById('result-wrap').innerHTML='';
+    document.getElementById('instr').textContent='';
+    render();
+}
+
+function onMove(e){
+    e.preventDefault(); if(!G.drawing||G.over) return;
+    const p=getPos(e); G.pts.push(p);
+    if(distToPath(p.x,p.y)>TOL[G.diff]) G.failed=true;
+    if(near(p.x,p.y,G.path[G.path.length-1],30)){ G.drawing=false; G.over=true; showResult(); }
+    render();
+}
+
+function onEnd(e){
+    e.preventDefault();
+    if(G.drawing){ G.drawing=false; if(!G.over) hint('E 지점까지 끝까지 그으세요'); }
+}
+
+// ── Result ──
+function accuracy(){
+    if(!G.pts.length) return 0;
+    const tol=TOL[G.diff];
+    return Math.round(G.pts.filter(p=>distToPath(p.x,p.y)<=tol).length/G.pts.length*100);
+}
+
+function hint(msg){
+    document.getElementById('result-wrap').innerHTML='<div class="res-msg info">'+msg+'</div>';
+}
+
+function showResult(){
+    const acc=accuracy(), ok=!G.failed;
+    document.getElementById('instr').textContent='';
+    document.getElementById('result-wrap').innerHTML=
+        '<div class="res-msg '+(ok?'ok':'ng')+' pop-in">'+(ok?'🎉 성공!':'😅 선을 벗어났어요')+'</div>'+
+        '<div class="res-acc fade-up">정확도 '+acc+'%</div>'+
+        '<div class="res-btns fade-up">'+
+          '<button class="btn-retry"  onclick="retry()">다시 그리기</button>'+
+          '<button class="btn-change" onclick="goHome()">선 바꾸기</button>'+
+        '</div>';
+}
+
+function retry(){
+    resetDraw();
+    document.getElementById('result-wrap').innerHTML='';
+    document.getElementById('instr').textContent='S에서 시작하여 E까지 선을 그으세요';
+    render();
+}
+
+function goHome(){
+    gameView.classList.add('hidden'); homeView.classList.remove('hidden');
+}
+</script>
+</body>
+</html>
