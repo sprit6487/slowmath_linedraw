@@ -467,9 +467,9 @@ function pickVariant() {
         };
     } else if (T === 'spring') {
         G.variant = {
-            cycles: [2, 2, 3][Math.floor(Math.random()*3)],   // 코일 수
-            amp:    0.28 + Math.random() * 0.08,               // R_y (h의 비율)
-            // flip 고정: 끝이 항상 위를 향하도록
+            cycles: 2,                               // 2코일 고정
+            amp:    0.28 + Math.random() * 0.08,
+            flip:   Math.random() < 0.5 ? 1 : -1,   // 1: 위 시작→끝, -1: 아래 시작→끝
         };
     } else {
         G.variant = {};
@@ -521,8 +521,9 @@ function genPath() {
             break;
         }
         case 'spring': {
-            // 코일 스프링: N코일 + 1/4코일 추가 → 끝이 오른쪽 위를 향함
-            const sCycles = G.variant.cycles || 5;
+            // 2코일, flip=1: 위 시작→위 끝 / flip=-1: 아래 시작→아래 끝
+            const sCycles = G.variant.cycles || 2;
+            const sFlip   = G.variant.flip   || 1;
             const R_x = (w - 2*m) / (2 * sCycles);
             const R_y = (G.variant.amp || 0.34) * h;
             const totalAngle = sCycles * 2 * Math.PI + Math.PI / 2;
@@ -530,7 +531,7 @@ function genPath() {
                 const t=i/STEPS;
                 const theta  = Math.PI + t * totalAngle;
                 const coilCX = m + R_x + t * (w - 2*m - R_x);
-                pts.push({ x: coilCX + R_x*Math.cos(theta), y: cy + R_y*Math.sin(theta) });
+                pts.push({ x: coilCX + R_x*Math.cos(theta), y: cy + R_y*Math.sin(theta)*sFlip });
             }
             if(D==='right') pts.reverse();
             break;
