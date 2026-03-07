@@ -231,18 +231,13 @@
         <p class="sec-label">어떤 선을 그을까요?</p>
         <div class="type-grid" id="type-grid"></div>
 
-        <div id="h-dir-sec">
-            <p class="sec-label">시작 방향</p>
-            <div class="row-btns" id="h-dir-row">
-                <button class="seg-btn sel-blue" data-dir="left">&#8592; 왼쪽에서</button>
-                <button class="seg-btn"          data-dir="right">오른쪽에서 &#8594;</button>
-            </div>
-        </div>
-        <div id="v-dir-sec" class="hidden">
-            <p class="sec-label">시작 방향</p>
-            <div class="row-btns" id="v-dir-row">
-                <button class="seg-btn sel-blue" data-dir="top">위에서 &#8595;</button>
-                <button class="seg-btn"          data-dir="bottom">아래에서 &#8593;</button>
+        <div id="dir-sec">
+            <p class="sec-label">방향</p>
+            <div class="row-btns" id="dir-row">
+                <button class="seg-btn sel-blue" data-dir="left">&#8594;</button>
+                <button class="seg-btn"          data-dir="right">&#8592;</button>
+                <button class="seg-btn"          data-dir="top">&#8595;</button>
+                <button class="seg-btn"          data-dir="bottom">&#8593;</button>
             </div>
         </div>
 
@@ -259,7 +254,9 @@
     <!-- Game view -->
     <div id="game-view" class="hidden">
         <div class="game-nav">
-            <button class="btn-back" id="btn-back">&#8592;</button>
+            <button class="btn-back" id="btn-back" title="홈">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-8 9 8M5 11v9a1 1 0 001 1h3m8 0h3a1 1 0 001-1v-9"/></svg>
+            </button>
             <span class="nav-title" id="nav-title"></span>
             <span class="badge" id="diff-badge"></span>
         </div>
@@ -281,18 +278,20 @@ const G = {
 };
 
 const TYPES = [
-    { id: 'straight', name: '직선',     vert: false },
-    { id: 'diagonal', name: '사선',     vert: false },
-    { id: 'vertical', name: '수직',     vert: true  },
-    { id: 'curve',    name: '곡선',     vert: false },
-    { id: 'zigzag',   name: '지그재그', vert: false },
-    { id: 'spring',   name: '스프링',   vert: false },
+    { id: 'straight',   name: '직선',     vert: false },
+    { id: 'diagonal',   name: '사선',     vert: false },
+    { id: 'curve',      name: '곡선',     vert: false },
+    { id: 'zigzag',     name: '지그재그', vert: false },
+    { id: 'spring',     name: '스프링',   vert: false },
+    { id: 'squarewave', name: '직각',     vert: false },
+    { id: 'scallop',    name: '파도',     vert: false },
+    { id: 'loop',       name: '상어',     vert: false },
 ];
 
 const TOL      = { easy: 44, normal: 26, hard: 14 };
 const DIFF_LBL = { easy: '쉬움', normal: '보통', hard: '어려움' };
-const DIR_LBL  = { left: '왼→오', right: '오→왼', top: '위→아래', bottom: '아래→위' };
-const TYPE_LBL = { straight:'직선', diagonal:'사선', vertical:'수직', curve:'곡선', zigzag:'지그재그', spring:'스프링' };
+const DIR_LBL  = { left: '왼쪽에서 오른쪽', right: '오른쪽에서 왼쪽', top: '위에서 아래', bottom: '아래에서 위' };
+const TYPE_LBL = { straight:'직선', diagonal:'사선', curve:'곡선', zigzag:'지그재그', spring:'스프링', squarewave:'직각', scallop:'파도', loop:'상어' };
 
 // ── Icon renderers ──
 function drawIcon(id, c, w, h) {
@@ -323,6 +322,45 @@ function drawIcon(id, c, w, h) {
             const ccx = sm + srx + t*(w - 2*sm - srx);
             i===0 ? c.moveTo(ccx+srx*Math.cos(theta), scy+sry*Math.sin(theta))
                   : c.lineTo(ccx+srx*Math.cos(theta), scy+sry*Math.sin(theta));
+        }
+    } else if (id === 'squarewave') {
+        const peaks = 3;
+        const segW = (w - 10) / (2*peaks + 1);
+        const midY = h * 0.70, topY = h * 0.30;
+        c.moveTo(5, midY);
+        for (let p = 0; p < peaks; p++) {
+            c.lineTo(5 + segW*(2*p+1), midY);
+            c.lineTo(5 + segW*(2*p+1), topY);
+            c.lineTo(5 + segW*(2*p+2), topY);
+            c.lineTo(5 + segW*(2*p+2), midY);
+        }
+        c.lineTo(w-5, midY);
+    } else if (id === 'scallop') {
+        const arches = 4;
+        const rx = (w - 10) / (2*arches);
+        const ry = rx * 0.80, iy = h/2 + ry/2;
+        for (let a = 0; a < arches; a++) {
+            const cx_a = 5 + rx + a*2*rx;
+            for (let i = 0; i <= 20; i++) {
+                const theta = Math.PI + (i/20)*Math.PI;
+                const x = cx_a + rx*Math.cos(theta);
+                const y = iy + ry*Math.sin(theta);
+                (a === 0 && i === 0) ? c.moveTo(x, y) : c.lineTo(x, y);
+            }
+        }
+    } else if (id === 'loop') {
+        // Shark fin: steep rise (20% of width), gradual curved fall (80%)
+        const nF = 3, rr = 0.20;
+        const fw = (w - 10) / nF;
+        const amp = h * 0.55, iy = h/2 + amp/2;
+        for (let i = 0; i <= 60; i++) {
+            const t = i / 60, pos = t * nF;
+            const fIdx = Math.min(Math.floor(pos), nF - 1), ft = pos - fIdx;
+            const x = 5 + fIdx * fw + fw * ft;
+            const af = ft <= rr
+                ? 1 - Math.cos((ft / rr) * Math.PI / 2)
+                : Math.cos(((ft - rr) / (1 - rr)) * Math.PI / 2);
+            i === 0 ? c.moveTo(x, iy - amp * af) : c.lineTo(x, iy - amp * af);
         }
     }
     c.stroke();
@@ -358,7 +396,7 @@ const ctx        = gc.getContext('2d');
         card.dataset.type = t.id;
 
         const ic = document.createElement('canvas');
-        ic.width = 60; ic.height = t.vert ? 40 : (t.id === 'spring' ? 40 : 32);
+        ic.width = 60; ic.height = ['spring','squarewave','scallop','loop'].includes(t.id) ? 40 : 32;
         ic.style.display = 'block'; ic.style.margin = '0 auto';
         drawIcon(t.id, ic.getContext('2d'), 60, ic.height);
 
@@ -380,21 +418,13 @@ document.getElementById('type-grid').addEventListener('click', e => {
     document.querySelectorAll('.type-card').forEach(c => c.classList.remove('sel'));
     card.classList.add('sel');
     G.type = card.dataset.type;
-    const isV = TYPES.find(t => t.id === G.type).vert;
-    document.getElementById('h-dir-sec').classList.toggle('hidden', isV);
-    document.getElementById('v-dir-sec').classList.toggle('hidden', !isV);
-    G.dir = isV ? 'top' : 'left';
-    document.querySelectorAll('#h-dir-row .seg-btn, #v-dir-row .seg-btn').forEach(b => b.classList.remove('sel-blue'));
-    document.querySelector(isV ? '#v-dir-row .seg-btn' : '#h-dir-row .seg-btn').classList.add('sel-blue');
 });
 
 // Direction
-['h-dir-row','v-dir-row'].forEach(id => {
-    document.getElementById(id).addEventListener('click', e => {
-        const b = e.target.closest('.seg-btn'); if (!b) return;
-        document.querySelectorAll('#'+id+' .seg-btn').forEach(x => x.classList.remove('sel-blue'));
-        b.classList.add('sel-blue'); G.dir = b.dataset.dir;
-    });
+document.getElementById('dir-row').addEventListener('click', e => {
+    const b = e.target.closest('.seg-btn'); if (!b) return;
+    document.querySelectorAll('#dir-row .seg-btn').forEach(x => x.classList.remove('sel-blue'));
+    b.classList.add('sel-blue'); G.dir = b.dataset.dir;
 });
 
 // Difficulty
@@ -412,7 +442,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('diff-badge').textContent = DIFF_LBL[G.diff];
     document.getElementById('result-wrap').innerHTML = '';
     document.getElementById('instr').textContent = '출발에서 시작하여 골인까지 선을 그으세요';
-    const isVert = TYPES.find(t => t.id === G.type).vert;
+    const isVert = (G.dir === 'top' || G.dir === 'bottom');
     lockOrientation(isVert ? 'portrait-primary' : 'landscape-primary');
     requestAnimationFrame(() => { initCanvas(); pickVariant(); genPath(); resetDraw(); render(); });
 });
@@ -426,7 +456,7 @@ document.getElementById('btn-back').addEventListener('click', () => {
 let LW = 0, LH = 0;
 
 function initCanvas() {
-    const isV = TYPES.find(t => t.id === G.type).vert;
+    const isV = (G.dir === 'top' || G.dir === 'bottom');
     const dpr  = window.devicePixelRatio || 1;
 
     if (isV) {
@@ -471,14 +501,38 @@ function pickVariant() {
             amp:    0.18 + Math.random() * 0.04,     // 수직 폭 축소 (0.18–0.22)
             flip:   Math.random() < 0.5 ? 1 : -1,
         };
+    } else if (T === 'squarewave') {
+        G.variant = {
+            peaks: [2, 3, 3][Math.floor(Math.random()*3)],
+            amp:   0.28 + Math.random() * 0.08,
+            flip:  Math.random() < 0.5 ? 1 : -1,
+        };
+    } else if (T === 'scallop') {
+        G.variant = {
+            arches: [3, 4, 4][Math.floor(Math.random()*3)],
+            amp:    0.22 + Math.random() * 0.08,
+            flip:   Math.random() < 0.5 ? 1 : -1,
+        };
+    } else if (T === 'loop') {
+        G.variant = {
+            loops: [2, 3, 3][Math.floor(Math.random()*3)],
+            amp:   0.35 + Math.random() * 0.10,
+        };
     } else {
         G.variant = {};
     }
 }
 
 function genPath() {
-    const w=LW, h=LH, cx=w/2, cy=h/2, m=26;
-    const pts=[], T=G.type, D=G.dir;
+    const isVert = (G.dir === 'top' || G.dir === 'bottom');
+    // For top/bottom directions, generate path as if horizontal (left/right),
+    // then rotate 90°: swap x↔y and map to the portrait canvas dimensions.
+    const w = isVert ? LH : LW;
+    const h = isVert ? LW : LH;
+    const cx=w/2, cy=h/2, m=26;
+    const pts=[], T=G.type;
+    // Normalise direction to left/right for path generation
+    const D = isVert ? (G.dir === 'top' ? 'left' : 'right') : G.dir;
 
     switch(T) {
         case 'straight': {
@@ -490,11 +544,6 @@ function genPath() {
             const sx=D==='left'?m:w-m, ex=D==='left'?w-m:m;
             const sy=h*.16, ey=h*.84;
             for(let i=0;i<=STEPS;i++){const t=i/STEPS; pts.push({x:sx+(ex-sx)*t,y:sy+(ey-sy)*t});}
-            break;
-        }
-        case 'vertical': {
-            const sy=D==='top'?m:h-m, ey=D==='top'?h-m:m;
-            for(let i=0;i<=STEPS;i++){const t=i/STEPS; pts.push({x:cx,y:sy+(ey-sy)*t});}
             break;
         }
         case 'curve': {
@@ -538,8 +587,107 @@ function genPath() {
             if(D==='right') pts.reverse();
             break;
         }
+        case 'squarewave': {
+            const sqFlip  = G.variant.flip  || 1;
+            const sqPeaks = G.variant.peaks || 3;
+            const sqAmp   = (G.variant.amp  || 0.32) * h;
+            const hSeg = (w - 2*m) / (2 * sqPeaks + 1);
+            // Build waypoints (right-angle corners)
+            const baseline = cy + sqAmp * sqFlip / 2;
+            const peak     = cy - sqAmp * sqFlip / 2;
+            const wp = [{x: m, y: baseline}];
+            for (let p = 0; p < sqPeaks; p++) {
+                const x1 = m + hSeg * (2*p + 1);
+                const x2 = m + hSeg * (2*p + 2);
+                wp.push({x: x1, y: baseline});
+                wp.push({x: x1, y: peak});
+                wp.push({x: x2, y: peak});
+                wp.push({x: x2, y: baseline});
+            }
+            wp.push({x: w - m, y: baseline});
+            // Interpolate STEPS+1 points by arc-length
+            let totalLen = 0;
+            const segLens = [];
+            for (let s = 1; s < wp.length; s++) {
+                const len = Math.hypot(wp[s].x - wp[s-1].x, wp[s].y - wp[s-1].y);
+                segLens.push(len); totalLen += len;
+            }
+            for (let i = 0; i <= STEPS; i++) {
+                const target = (i / STEPS) * totalLen;
+                let cum = 0;
+                for (let s = 0; s < segLens.length; s++) {
+                    if (cum + segLens[s] >= target || s === segLens.length - 1) {
+                        const t2 = segLens[s] > 0 ? Math.min(1, (target - cum) / segLens[s]) : 0;
+                        pts.push({
+                            x: wp[s].x + (wp[s+1].x - wp[s].x) * t2,
+                            y: wp[s].y + (wp[s+1].y - wp[s].y) * t2
+                        });
+                        break;
+                    }
+                    cum += segLens[s];
+                }
+            }
+            if (D === 'right') pts.reverse();
+            break;
+        }
+        case 'scallop': {
+            const scFlip   = G.variant.flip   || 1;
+            const scArches = G.variant.arches || 4;
+            const rx = (w - 2*m) / (2 * scArches);
+            const ry = Math.min(rx * 0.85, (G.variant.amp || 0.26) * h);
+            for (let i = 0; i <= STEPS; i++) {
+                const t = i / STEPS;
+                const pos  = t * scArches;
+                const aIdx = Math.min(Math.floor(pos), scArches - 1);
+                const aT   = pos - aIdx;
+                const cx_a = m + rx + aIdx * 2 * rx;
+                const theta = Math.PI + aT * Math.PI;
+                pts.push({
+                    x: cx_a + rx * Math.cos(theta),
+                    y: cy + ry * scFlip / 2 + ry * Math.sin(theta) * scFlip
+                });
+            }
+            if (D === 'right') pts.reverse();
+            break;
+        }
+        case 'loop': {
+            // Shark fin: always steep rise → gradual fall (direction fixed, never flipped)
+            // D='right' → reverse fin order so steep side is still the "entry" side
+            const nFins = G.variant.loops || 3;
+            const rr    = 0.20;  // 20% steep rise, 80% gradual fall
+            const fw    = (w - 2*m) / nFins;
+            const amp   = Math.min((G.variant.amp || 0.38) * h, (h - 30) / 2);
+            // finAf: concave rise (1-cos), convex fall (cos)
+            const finAf = ft => ft <= rr
+                ? 1 - Math.cos((ft / rr) * Math.PI / 2)
+                : Math.cos(((ft - rr) / (1 - rr)) * Math.PI / 2);
+            for (let i = 0; i <= STEPS; i++) {
+                const t    = i / STEPS;
+                const pos  = t * nFins;
+                const fIdx = Math.min(Math.floor(pos), nFins - 1);
+                const ft   = pos - fIdx;
+                pts.push({ x: m + fIdx * fw + fw * ft, y: cy + amp/2 - amp * finAf(ft) });
+            }
+            if (D === 'right') {
+                pts.length = 0;
+                for (let i = 0; i <= STEPS; i++) {
+                    const t    = i / STEPS;
+                    const pos  = t * nFins;
+                    const fIdx = Math.min(Math.floor(pos), nFins - 1);
+                    const ft   = pos - fIdx;
+                    const ftM  = 1 - ft;
+                    pts.push({ x: w - m - fIdx * fw - fw * ft, y: cy + amp/2 - amp * finAf(ftM) });
+                }
+            }
+            break;
+        }
     }
-    G.path = pts;
+    // If direction is top/bottom, rotate path 90°: (x,y) → (y, x)
+    if (isVert) {
+        G.path = pts.map(p => ({ x: p.y, y: p.x }));
+    } else {
+        G.path = pts;
+    }
 }
 
 function resetDraw() { G.drawing=false; G.over=false; G.pts=[]; G.failed=false; }
@@ -687,7 +835,7 @@ function showResult(){
 }
 
 function retry(){
-    if (['curve','zigzag','spring'].includes(G.type)) { pickVariant(); genPath(); }
+    if (['curve','zigzag','spring','squarewave','scallop','loop'].includes(G.type)) { pickVariant(); genPath(); }
     resetDraw();
     document.getElementById('result-wrap').innerHTML='';
     document.getElementById('instr').textContent='출발에서 시작하여 골인까지 선을 그으세요';
