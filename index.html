@@ -316,7 +316,7 @@ function drawIcon(id, c, w, h) {
             i===0 ? c.moveTo(p[0],p[1]) : c.lineTo(p[0],p[1]));
     } else if (id === 'spring') {
         // 코일 스프링: N코일 + 1/4코일 추가 → 끝이 위를 향함
-        const sN=2, sm=10, scy=h/2, srx=(w-2*sm)/(2*sN), sry=h*0.38;
+        const sN=2, sm=10, scy=h/2, srx=(w-2*sm)/(2*sN+3), sry=srx*1.1;
         const sTotalAngle = sN*2*Math.PI + Math.PI/2;
         for (let i=0;i<=120;i++) {
             const t=i/120, theta=Math.PI+t*sTotalAngle;
@@ -467,9 +467,9 @@ function pickVariant() {
         };
     } else if (T === 'spring') {
         G.variant = {
-            cycles: 2,                               // 2코일 고정
-            amp:    0.28 + Math.random() * 0.08,
-            flip:   Math.random() < 0.5 ? 1 : -1,   // 1: 위 시작→끝, -1: 아래 시작→끝
+            cycles: 2,
+            amp:    0.18 + Math.random() * 0.04,     // 수직 폭 축소 (0.18–0.22)
+            flip:   Math.random() < 0.5 ? 1 : -1,
         };
     } else {
         G.variant = {};
@@ -524,8 +524,10 @@ function genPath() {
             // 2코일, flip=1: 위 시작→위 끝 / flip=-1: 아래 시작→아래 끝
             const sCycles = G.variant.cycles || 2;
             const sFlip   = G.variant.flip   || 1;
-            const R_x = (w - 2*m) / (2 * sCycles);
-            const R_y = (G.variant.amp || 0.34) * h;
+            // R_x: 분모 +3 → 루프 간 ~20px 여백 확보 (기존 /4=56px → /7=32px)
+            const R_x = (w - 2*m) / (2 * sCycles + 3);
+            // R_y: amp 기반이되 R_x의 1.15배로 상한 제한 (수직 폭 억제)
+            const R_y = Math.min((G.variant.amp || 0.20) * h, R_x * 1.15);
             const totalAngle = sCycles * 2 * Math.PI + Math.PI / 2;
             for(let i=0;i<=STEPS;i++){
                 const t=i/STEPS;
