@@ -461,7 +461,7 @@ function pickVariant() {
 }
 
 function genPath() {
-    const w=LW, h=LH, cx=w/2, cy=h/2, m=48;
+    const w=LW, h=LH, cx=w/2, cy=h/2, m=58;
     const pts=[], T=G.type, D=G.dir;
 
     switch(T) {
@@ -588,16 +588,17 @@ function render() {
         ctx.lineWidth=4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
     }
 
-    // S / E markers
-    mkr(path[0].x,path[0].y,'#5BC886','S');
-    mkr(path[path.length-1].x,path[path.length-1].y,'#F07070','E');
+    // 출발 / 골인 markers
+    mkr(path[0].x,path[0].y,'#5BC886','출발');
+    mkr(path[path.length-1].x,path[path.length-1].y,'#F07070','골인');
 }
 
 function mkr(x,y,color,label){
-    ctx.beginPath(); ctx.arc(x,y,14,0,Math.PI*2);
+    const r=22;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
     ctx.fillStyle=color; ctx.fill();
     ctx.strokeStyle='white'; ctx.lineWidth=2.5; ctx.stroke();
-    ctx.fillStyle='white'; ctx.font='bold 11px sans-serif';
+    ctx.fillStyle='white'; ctx.font='bold 11px \'Noto Sans KR\', sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(label,x,y);
 }
@@ -619,7 +620,7 @@ gc.addEventListener('mouseup',    onEnd);
 function onStart(e){
     e.preventDefault(); if(G.over) return;
     const p=getPos(e);
-    if(!near(p.x,p.y,G.path[0],32)){ hint('S 지점에서 시작하세요'); return; }
+    if(!near(p.x,p.y,G.path[0],36)){ hint('출발 지점에서 시작하세요'); return; }
     G.drawing=true; G.pts=[p]; G.failed=false;
     document.getElementById('result-wrap').innerHTML='';
     document.getElementById('instr').textContent='';
@@ -630,13 +631,13 @@ function onMove(e){
     e.preventDefault(); if(!G.drawing||G.over) return;
     const p=getPos(e); G.pts.push(p);
     if(distToPath(p.x,p.y)>TOL[G.diff]) G.failed=true;
-    if(near(p.x,p.y,G.path[G.path.length-1],30)){ G.drawing=false; G.over=true; showResult(); }
+    if(near(p.x,p.y,G.path[G.path.length-1],36)){ G.drawing=false; G.over=true; showResult(); }
     render();
 }
 
 function onEnd(e){
     e.preventDefault();
-    if(G.drawing){ G.drawing=false; if(!G.over) hint('E 지점까지 끝까지 그으세요'); }
+    if(G.drawing){ G.drawing=false; if(!G.over) hint('골인 지점까지 끝까지 그으세요'); }
 }
 
 // ── Result ──
