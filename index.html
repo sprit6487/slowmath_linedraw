@@ -477,7 +477,7 @@ function pickVariant() {
 }
 
 function genPath() {
-    const w=LW, h=LH, cx=w/2, cy=h/2, m=38;
+    const w=LW, h=LH, cx=w/2, cy=h/2, m=26;
     const pts=[], T=G.type, D=G.dir;
 
     switch(T) {
@@ -617,11 +617,11 @@ function render() {
 }
 
 function mkr(x,y,color,label){
-    const r=18;
+    const r=14;
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
     ctx.fillStyle=color; ctx.fill();
-    ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
-    ctx.fillStyle='white'; ctx.font='bold 10px \'Noto Sans KR\', sans-serif';
+    ctx.strokeStyle='white'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='white'; ctx.font='bold 8px \'Noto Sans KR\', sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(label,x,y);
 }
@@ -643,7 +643,7 @@ gc.addEventListener('mouseup',    onEnd);
 function onStart(e){
     e.preventDefault(); if(G.over) return;
     const p=getPos(e);
-    if(!near(p.x,p.y,G.path[0],30)){ hint('출발 지점에서 시작하세요'); return; }
+    if(!near(p.x,p.y,G.path[0],24)){ hint('출발 지점에서 시작하세요'); return; }
     G.drawing=true; G.pts=[p]; G.failed=false;
     document.getElementById('result-wrap').innerHTML='';
     document.getElementById('instr').textContent='';
@@ -654,7 +654,7 @@ function onMove(e){
     e.preventDefault(); if(!G.drawing||G.over) return;
     const p=getPos(e); G.pts.push(p);
     if(distToPath(p.x,p.y)>TOL[G.diff]) G.failed=true;
-    if(near(p.x,p.y,G.path[G.path.length-1],30)){ G.drawing=false; G.over=true; showResult(); }
+    if(near(p.x,p.y,G.path[G.path.length-1],24)){ G.drawing=false; G.over=true; showResult(); }
     render();
 }
 
