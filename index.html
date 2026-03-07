@@ -143,26 +143,6 @@
         .pop-in  { animation: popIn  .35s ease-out; }
         .fade-up { animation: fadeUp .3s  ease-out; }
 
-        /* ── 가로 모드 강제 회전 (CSS 트릭) ── */
-        @media (orientation: portrait) {
-            body.landscape-lock {
-                position: fixed;
-                overflow: hidden;
-                width: 100dvh;
-                height: 100dvw;
-                top: calc(50dvh - 50dvw);
-                left: calc(50dvw - 50dvh);
-                transform: rotate(90deg);
-            }
-            body.landscape-lock .app {
-                max-width: 100%;
-                width: 100%;
-                min-height: 100dvw;
-                border-radius: 0;
-                box-shadow: none;
-                padding: 12px 20px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -350,11 +330,6 @@ function drawIcon(id, c, w, h) {
 
 // ── Orientation lock ──
 function lockOrientation(mode) {
-    if (mode === 'landscape-primary') {
-        document.body.classList.add('landscape-lock');
-    } else {
-        document.body.classList.remove('landscape-lock');
-    }
     if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock(mode).catch(() => {});
     }
@@ -439,8 +414,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('instr').textContent = '출발에서 시작하여 골인까지 선을 그으세요';
     const isVert = TYPES.find(t => t.id === G.type).vert;
     lockOrientation(isVert ? 'portrait-primary' : 'landscape-primary');
-    // 더블 RAF: CSS 클래스 적용 후 레이아웃 재계산 완료 보장
-    requestAnimationFrame(() => requestAnimationFrame(() => { initCanvas(); pickVariant(); genPath(); resetDraw(); render(); }));
+    requestAnimationFrame(() => { initCanvas(); pickVariant(); genPath(); resetDraw(); render(); });
 });
 
 document.getElementById('btn-back').addEventListener('click', () => {
@@ -455,10 +429,6 @@ function initCanvas() {
     const isV = TYPES.find(t => t.id === G.type).vert;
     const dpr  = window.devicePixelRatio || 1;
 
-    // CSS 회전 트릭 사용 중이면 innerWidth = 세로폰 기준 단변(≈ 390px)
-    const cssLocked = document.body.classList.contains('landscape-lock')
-                   && window.matchMedia('(orientation: portrait)').matches;
-
     if (isV) {
         canvasWrap.classList.add('portrait');
         LW = canvasWrap.clientWidth - 4;
@@ -466,8 +436,7 @@ function initCanvas() {
     } else {
         canvasWrap.classList.remove('portrait');
         LW = canvasWrap.clientWidth - 4;
-        // 가로 회전 시 캔버스 높이 = 단변 기준으로 계산
-        LH = cssLocked ? Math.round(window.innerWidth * 0.58) : 210;
+        LH = 210;
     }
 
     gc.width  = Math.round(LW * dpr);
