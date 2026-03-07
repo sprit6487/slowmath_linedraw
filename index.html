@@ -66,7 +66,7 @@
         }
         .type-card:active { transform: scale(.95); }
         .type-card.sel { border-color: #F0901E; background: #FFF8F0; }
-        .type-card .t-icon { height: 34px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+        .type-card .t-icon { height: 42px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
         .type-card .t-name { font-size: .82rem; font-weight: 700; color: #4A4035; }
 
         /* Segment buttons */
@@ -314,7 +314,8 @@ function drawIcon(id, c, w, h) {
         [[5,h/2],[w*.25,5],[w*.5,h-5],[w*.75,5],[w-5,h/2]].forEach((p,i) =>
             i===0 ? c.moveTo(p[0],p[1]) : c.lineTo(p[0],p[1]));
     } else if (id === 'spring') {
-        const sN=4, sm=5, scy=h/2, srx=(w-2*sm)/(2*sN), sry=h*0.38;
+        // sm=10 으로 여백 확보 → max x = 10 + 5*10 = 60 (딱 맞음)
+        const sN=4, sm=10, scy=h/2, srx=(w-2*sm)/(2*sN), sry=h*0.40;
         for (let i=0;i<=120;i++) {
             const t=i/120, theta=Math.PI+t*sN*2*Math.PI;
             const ccx=sm+srx*(1+2*sN*t);
@@ -347,7 +348,7 @@ const ctx        = gc.getContext('2d');
         card.dataset.type = t.id;
 
         const ic = document.createElement('canvas');
-        ic.width = 60; ic.height = t.vert ? 40 : 32;
+        ic.width = 60; ic.height = t.vert ? 40 : (t.id === 'spring' ? 40 : 32);
         ic.style.display = 'block'; ic.style.margin = '0 auto';
         drawIcon(t.id, ic.getContext('2d'), 60, ic.height);
 
@@ -567,15 +568,15 @@ function render() {
     up.forEach(p=>ctx.lineTo(p.x,p.y));
     lo.slice().reverse().forEach(p=>ctx.lineTo(p.x,p.y));
     ctx.closePath();
-    ctx.fillStyle='rgba(91,200,134,.13)'; ctx.fill();
+    ctx.fillStyle='rgba(91,200,134,.06)'; ctx.fill();
 
     // Band borders
     [up,lo].forEach(pts=>{
         ctx.beginPath();
         ctx.moveTo(pts[0].x,pts[0].y);
         pts.forEach(p=>ctx.lineTo(p.x,p.y));
-        ctx.strokeStyle='rgba(91,200,134,.55)';
-        ctx.lineWidth=1.5; ctx.setLineDash([6,5]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle='rgba(91,200,134,.25)';
+        ctx.lineWidth=1; ctx.setLineDash([6,6]); ctx.stroke(); ctx.setLineDash([]);
     });
 
     // Center guide
