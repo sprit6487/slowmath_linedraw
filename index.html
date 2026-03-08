@@ -85,13 +85,23 @@
         /* Start button */
         .start-btn {
             width: 100%; padding: 16px 0; border-radius: 16px; border: none;
-            background: linear-gradient(135deg, #F0A050, #F07070);
+            background: #4A4035;
             color: white; font-family: 'Noto Sans KR', sans-serif;
             font-size: 1.1rem; font-weight: 700; cursor: pointer;
-            box-shadow: 0 4px 16px rgba(240,112,112,.3);
+            box-shadow: 0 4px 16px rgba(74,64,53,.25);
             transition: transform .1s, box-shadow .1s;
         }
         .start-btn:active { transform: scale(.97); box-shadow: none; }
+
+        /* Logout button */
+        .logout-btn {
+            margin-top: 12px; width: 100%; padding: 13px 0; border-radius: 16px;
+            border: 2px solid #D6CFC6; background: white;
+            color: #8C8070; font-family: 'Noto Sans KR', sans-serif;
+            font-size: .95rem; font-weight: 600; cursor: pointer;
+            transition: transform .1s;
+        }
+        .logout-btn:active { transform: scale(.97); background: #F5F1EB; }
 
         /* Game nav */
         .game-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
@@ -249,6 +259,7 @@
         </div>
 
         <button class="start-btn" id="start-btn">시작하기</button>
+        <button class="logout-btn" id="logout-btn">로그아웃</button>
     </div>
 
     <!-- Game view -->
@@ -449,6 +460,13 @@ document.getElementById('start-btn').addEventListener('click', () => {
 
 document.getElementById('btn-back').addEventListener('click', () => {
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
+    lockOrientation('portrait-primary');
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+    homeView.classList.add('hidden');
+    document.getElementById('login-view').classList.remove('hidden');
     lockOrientation('portrait-primary');
 });
 
