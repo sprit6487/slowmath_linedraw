@@ -798,9 +798,13 @@ function onStart(e){
     render();
 }
 
+const MIN_DRAW_DIST = 10;
 function onMove(e){
     e.preventDefault(); if(!G.drawing||G.over) return;
-    const p=getPos(e); G.pts.push(p);
+    const p=getPos(e);
+    const last=G.pts[G.pts.length-1];
+    if(last){const dx=p.x-last.x,dy=p.y-last.y; if(dx*dx+dy*dy<MIN_DRAW_DIST*MIN_DRAW_DIST) return;}
+    G.pts.push(p);
     if(distToPath(p.x,p.y)>TOL[G.diff]) G.failed=true;
     if(near(p.x,p.y,G.path[G.path.length-1],24)){ G.drawing=false; G.over=true; showResult(); }
     render();
