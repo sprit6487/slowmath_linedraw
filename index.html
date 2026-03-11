@@ -862,6 +862,7 @@ function showResult(){
         '<div class="res-btns fade-up">'+
           '<button class="btn-retry"  onclick="retry()">다시 그리기</button>'+
           '<button class="btn-change" onclick="goHome()">선 바꾸기</button>'+
+          '<button class="btn-change" onclick="shareApp()" style="background:white;border-color:#E8E2DA;color:#8C8070;margin-top:6px;">📤 공유하기</button>'+
         '</div>';
 }
 
@@ -876,6 +877,21 @@ function retry(){
 function goHome(){
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
     lockOrientation('portrait-primary');
+}
+
+function shareApp() {
+    const title = document.title;
+    const url = window.location.href;
+    const text = title + ' - 아이와 함께 연습해보세요!';
+    if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function(){});
+    } else {
+        navigator.clipboard.writeText(url).then(function() {
+            alert('링크가 복사되었습니다!');
+        }).catch(function() {
+            prompt('링크를 복사하세요:', url);
+        });
+    }
 }
 </script>
 </body>
