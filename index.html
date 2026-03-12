@@ -915,6 +915,12 @@ function mkr(x,y,color,label){
 function getPos(e){
     const r=gc.getBoundingClientRect();
     const s=e.touches?e.touches[0]:e;
+    // CSS rotate(90deg) 폴백 시 좌표 보정
+    if (gameView.classList.contains('force-landscape')) {
+        const rx = (s.clientX - r.left) / r.width;
+        const ry = (s.clientY - r.top) / r.height;
+        return { x: ry * LW, y: (1 - rx) * LH };
+    }
     return {x:(s.clientX-r.left)*(LW/r.width), y:(s.clientY-r.top)*(LH/r.height)};
 }
 
