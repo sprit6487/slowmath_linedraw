@@ -543,17 +543,28 @@ function initCanvasAndStart() {
     initCanvas(); pickVariant(); genPath(); resetDraw(); render();
 }
 
+const preventScrollHandler = function(e) {
+    if (!e.target.closest('canvas') && !e.target.closest('button') && !e.target.closest('.result-wrap')) {
+        e.preventDefault();
+    }
+};
 function lockScroll() {
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.addEventListener('touchmove', preventScrollHandler, { passive: false });
 }
 function unlockScroll() {
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
     document.documentElement.style.height = '';
     document.body.style.height = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.removeEventListener('touchmove', preventScrollHandler);
 }
 
 document.getElementById('start-btn').addEventListener('click', () => {
