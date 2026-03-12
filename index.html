@@ -145,7 +145,8 @@
         }
         .landscape-game .instr { font-size: .75rem; margin-bottom: 4px; min-height: 18px; flex-shrink: 0; }
         .landscape-game .result-wrap { min-height: 40px; flex-shrink: 0; }
-        .landscape-game .res-btns { margin-top: 4px; }
+        .landscape-game .result-overlay .result-card { padding: 24px 20px 20px; }
+        .landscape-game .result-actions { margin-top: 4px; }
 
         /* CSS 폴백: 세로 기기에서 강제 가로 회전 */
         .force-landscape {
@@ -161,11 +162,26 @@
             background: white;
         }
         .res-msg { font-size: 1.25rem; font-weight: 700; text-align: center; }
-        .res-msg.ok   { color: #5BC886; }
-        .res-msg.ng   { color: #F07070; }
         .res-msg.info { color: #B8AD9E; font-size: .9rem; font-weight: 600; }
-        .res-acc { font-size: .875rem; font-weight: 600; color: #8C8070; }
-        .res-btns { display: flex; gap: 10px; width: 100%; margin-top: 8px; }
+
+        /* Result overlay (popup) */
+        .result-overlay {
+            display: none; position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,.35); z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .result-overlay.active { display: flex; }
+        .result-card {
+            background: #fff; border-radius: 24px;
+            padding: 36px 28px 28px; text-align: center;
+            max-width: 380px; width: 90%;
+            animation: popIn .35s ease-out;
+        }
+        .result-emoji { font-size: 3rem; margin-bottom: 8px; }
+        .result-text { font-size: 1.5rem; font-weight: 800; color: #2D2A26; margin-bottom: 4px; }
+        .result-sub { font-size: .95rem; font-weight: 600; color: #8C8070; margin-bottom: 24px; }
+        .result-actions { display: flex; gap: 10px; width: 100%; }
         .btn-retry {
             flex: 1; padding: 13px 0; border-radius: 12px;
             border: 2.5px solid #E8E2DA; background: white;
@@ -173,13 +189,13 @@
             font-weight: 700; color: #4A4035; cursor: pointer; transition: transform .1s;
         }
         .btn-retry:active { transform: scale(.97); }
-        .btn-change {
+        .btn-next {
             flex: 1; padding: 13px 0; border-radius: 12px; border: none;
             background: linear-gradient(135deg, #F0A050, #F07070);
             font-family: 'Noto Sans KR', sans-serif; font-size: .9rem;
             font-weight: 700; color: white; cursor: pointer; transition: transform .1s;
         }
-        .btn-change:active { transform: scale(.97); }
+        .btn-next:active { transform: scale(.97); }
 
         /* Animations */
         @keyframes popIn { 0%{transform:scale(.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1);opacity:1} }
@@ -303,7 +319,7 @@
     </div>
 
     <!-- Game view -->
-    <div id="game-view" class="hidden" style="overflow:hidden; touch-action:none; overscroll-behavior:none;">
+    <div id="game-view" class="hidden" style="overflow:hidden; touch-action:none; overscroll-behavior:none; position:relative;">
         <div class="game-nav">
             <button class="btn-back" id="btn-back" title="홈">
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-8 9 8M5 11v9a1 1 0 001 1h3m8 0h3a1 1 0 001-1v-9"/></svg>
@@ -316,6 +332,17 @@
         </div>
         <p class="instr" id="instr">S에서 시작하여 E까지 선을 그으세요</p>
         <div class="result-wrap" id="result-wrap"></div>
+        <div class="result-overlay" id="result-overlay">
+            <div class="result-card">
+                <div class="result-emoji" id="result-emoji"></div>
+                <div class="result-text" id="result-text"></div>
+                <div class="result-sub" id="result-sub"></div>
+                <div class="result-actions">
+                    <button class="btn-retry" onclick="goHome()">선 바꾸기</button>
+                    <button class="btn-next" onclick="retry()">또 그리기</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -544,14 +571,14 @@ function initCanvasAndStart() {
 }
 
 const preventScrollHandler = function(e) {
-    // 캔버스/버튼/결과 영역 외 모든 터치 차단 → URL바 방지
-    if (!e.target.closest('canvas') && !e.target.closest('button') && !e.target.closest('.result-wrap')) {
+    // touchmove: 캔버스 외 모든 영역 차단 → 스크롤/URL바 방지
+    if (!e.target.closest('canvas')) {
         e.preventDefault();
     }
 };
 const preventTouchStartHandler = function(e) {
-    // touchstart도 차단해야 일부 브라우저에서 URL바 토글 방지
-    if (!e.target.closest('canvas') && !e.target.closest('button') && !e.target.closest('.result-wrap')) {
+    // touchstart: 버튼/오버레이는 허용 (click 이벤트 필요), 나머지 차단
+    if (!e.target.closest('canvas') && !e.target.closest('button') && !e.target.closest('.result-overlay')) {
         e.preventDefault();
     }
 };
@@ -578,6 +605,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('nav-title').textContent = TYPE_LBL[G.type] + '  ' + DIR_LBL[G.dir];
     document.getElementById('diff-badge').textContent = DIFF_LBL[G.diff];
     document.getElementById('result-wrap').innerHTML = '';
+    document.getElementById('result-overlay').classList.remove('active');
     document.getElementById('instr').textContent = '출발에서 시작하여 골인까지 선을 그으세요';
     const isVert = (G.dir === 'top' || G.dir === 'bottom');
     if (isVert) {
@@ -1002,25 +1030,23 @@ function hint(msg){
 function showResult(){
     const acc=accuracy(), ok=!G.failed;
     document.getElementById('instr').textContent='';
-    document.getElementById('result-wrap').innerHTML=
-        '<div class="res-msg '+(ok?'ok':'ng')+' pop-in">'+(ok?'🎉 성공!':'😅 선을 벗어났어요')+'</div>'+
-        '<div class="res-acc fade-up">정확도 '+acc+'%</div>'+
-        '<div class="res-btns fade-up">'+
-          '<button class="btn-retry"  onclick="goHome()">선 바꾸기</button>'+
-          '<button class="btn-change" onclick="retry()">또 그리기</button>'+
-        '</div>';
+    document.getElementById('result-emoji').textContent = ok ? '🎉' : '😅';
+    document.getElementById('result-text').textContent = ok ? '성공!' : '선을 벗어났어요';
+    document.getElementById('result-sub').textContent = '정확도 '+acc+'%';
+    document.getElementById('result-overlay').classList.add('active');
 }
 
 function retry(){
+    document.getElementById('result-overlay').classList.remove('active');
     initCanvas();
     if (['curve','zigzag','spring','squarewave','scallop','loop'].includes(G.type)) { pickVariant(); }
     genPath(); resetDraw();
-    document.getElementById('result-wrap').innerHTML='';
     document.getElementById('instr').textContent='출발에서 시작하여 골인까지 선을 그으세요';
     render();
 }
 
 function goHome(){
+    document.getElementById('result-overlay').classList.remove('active');
     unlockLandscape();
     unlockScroll();
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
