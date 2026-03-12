@@ -543,9 +543,23 @@ function initCanvasAndStart() {
     initCanvas(); pickVariant(); genPath(); resetDraw(); render();
 }
 
+function lockScroll() {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+}
+function unlockScroll() {
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.documentElement.style.height = '';
+    document.body.style.height = '';
+}
+
 document.getElementById('start-btn').addEventListener('click', () => {
     homeView.classList.add('hidden');
     gameView.classList.remove('hidden');
+    lockScroll();
     document.getElementById('nav-title').textContent = TYPE_LBL[G.type] + '  ' + DIR_LBL[G.dir];
     document.getElementById('diff-badge').textContent = DIFF_LBL[G.diff];
     document.getElementById('result-wrap').innerHTML = '';
@@ -562,6 +576,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
 
 document.getElementById('btn-back').addEventListener('click', () => {
     unlockLandscape();
+    unlockScroll();
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
     lockOrientation('portrait-primary');
 });
@@ -992,6 +1007,7 @@ function retry(){
 
 function goHome(){
     unlockLandscape();
+    unlockScroll();
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
     lockOrientation('portrait-primary');
 }
