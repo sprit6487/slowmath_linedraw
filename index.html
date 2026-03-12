@@ -132,6 +132,34 @@
         /* Instructions / result */
         .instr { text-align: center; font-size: .875rem; font-weight: 600; color: #B8AD9E; margin-bottom: 12px; min-height: 22px; }
         .result-wrap { min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+
+        /* ── 가로 모드 레이아웃 ── */
+        .landscape-game {
+            display: flex; flex-direction: column;
+            height: 100%; padding: 8px 12px;
+        }
+        .landscape-game .game-nav { margin-bottom: 4px; flex-shrink: 0; }
+        .landscape-game .canvas-wrap {
+            flex: 1; margin-bottom: 6px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .landscape-game .instr { font-size: .75rem; margin-bottom: 4px; min-height: 18px; flex-shrink: 0; }
+        .landscape-game .result-wrap { min-height: 40px; flex-shrink: 0; }
+        .landscape-game .res-btns { margin-top: 4px; }
+
+        /* CSS 폴백: 세로 기기에서 강제 가로 회전 */
+        .force-landscape {
+            position: fixed !important;
+            top: 0; left: 0;
+            width: 100vh !important;
+            height: 100vw !important;
+            transform: rotate(90deg);
+            transform-origin: top left;
+            margin-left: 100vw;
+            overflow: hidden;
+            z-index: 50;
+            background: white;
+        }
         .res-msg { font-size: 1.25rem; font-weight: 700; text-align: center; }
         .res-msg.ok   { color: #5BC886; }
         .res-msg.ng   { color: #F07070; }
@@ -389,12 +417,65 @@ function drawIcon(id, c, w, h) {
     c.stroke();
 }
 
-// ── Orientation lock ──
+// ── Orientation ──
+let orientationLocked = false;
+let useCssFallback = false;
+
+function lockLandscape() {
+    gameView.classList.add('landscape-game');
+    const so = screen.orientation;
+    if (so && so.lock) {
+        so.lock('landscape').then(() => {
+            orientationLocked = true;
+            setTimeout(() => initCanvasAndStart(), 100);
+        }).catch(() => {
+            useCssFallback = true;
+            if (window.innerHeight > window.innerWidth) {
+                gameView.classList.add('force-landscape');
+            }
+            setTimeout(() => initCanvasAndStart(), 100);
+        });
+    } else {
+        useCssFallback = true;
+        if (window.innerHeight > window.innerWidth) {
+            gameView.classList.add('force-landscape');
+        }
+        setTimeout(() => initCanvasAndStart(), 100);
+    }
+}
+
+function unlockLandscape() {
+    gameView.classList.remove('landscape-game', 'force-landscape');
+    if (orientationLocked) {
+        const so = screen.orientation;
+        if (so && so.unlock) so.unlock();
+        orientationLocked = false;
+    }
+    useCssFallback = false;
+}
+
 function lockOrientation(mode) {
+    // 하위 호환: portrait 잠금 시 가로 모드 해제
+    if (mode.startsWith('portrait')) {
+        unlockLandscape();
+    }
     if (screen.orientation && screen.orientation.lock) {
         screen.orientation.lock(mode).catch(() => {});
     }
 }
+
+window.addEventListener('resize', () => {
+    if (useCssFallback) {
+        if (window.innerHeight > window.innerWidth) {
+            gameView.classList.add('force-landscape');
+        } else {
+            gameView.classList.remove('force-landscape');
+        }
+    }
+    if (!gameView.classList.contains('hidden') && G.path.length) {
+        initCanvas(); render();
+    }
+});
 
 // ── Social login ──
 function socialLogin(provider) {
@@ -458,6 +539,10 @@ document.getElementById('diff-row').addEventListener('click', e => {
 });
 
 // Start
+function initCanvasAndStart() {
+    initCanvas(); pickVariant(); genPath(); resetDraw(); render();
+}
+
 document.getElementById('start-btn').addEventListener('click', () => {
     homeView.classList.add('hidden');
     gameView.classList.remove('hidden');
@@ -466,11 +551,17 @@ document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('result-wrap').innerHTML = '';
     document.getElementById('instr').textContent = '출발에서 시작하여 골인까지 선을 그으세요';
     const isVert = (G.dir === 'top' || G.dir === 'bottom');
-    lockOrientation(isVert ? 'portrait-primary' : 'landscape-primary');
-    requestAnimationFrame(() => { initCanvas(); pickVariant(); genPath(); resetDraw(); render(); });
+    if (isVert) {
+        lockOrientation('portrait-primary');
+        requestAnimationFrame(() => initCanvasAndStart());
+    } else {
+        lockLandscape();
+        // initCanvasAndStart는 lockLandscape 내부에서 호출됨
+    }
 });
 
 document.getElementById('btn-back').addEventListener('click', () => {
+    unlockLandscape();
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
     lockOrientation('portrait-primary');
 });
@@ -487,12 +578,28 @@ let LW = 0, LH = 0;
 
 function initCanvas() {
     const isV = (G.dir === 'top' || G.dir === 'bottom');
+    const isLandscape = gameView.classList.contains('landscape-game');
     const dpr  = window.devicePixelRatio || 1;
+
+    // 캔버스 크기 리셋 (부모 측정에 영향 방지)
+    gc.style.width = '';
+    gc.style.height = '';
 
     if (isV) {
         canvasWrap.classList.add('portrait');
         LW = canvasWrap.clientWidth - 4;
         LH = Math.min(Math.floor(window.innerHeight * 0.54), 420);
+    } else if (isLandscape) {
+        canvasWrap.classList.remove('portrait');
+        // 가로 모드: 사용 가능한 전체 공간 활용
+        const viewH = gameView.classList.contains('force-landscape')
+            ? window.innerWidth : window.innerHeight;
+        const navH = document.querySelector('.game-nav').offsetHeight || 36;
+        const bottomH = 70; // instr + result area
+        const padding = 30;
+        LW = gameView.classList.contains('force-landscape')
+            ? (window.innerHeight - 24) : (window.innerWidth - 24);
+        LH = Math.max(150, viewH - navH - bottomH - padding);
     } else {
         canvasWrap.classList.remove('portrait');
         LW = canvasWrap.clientWidth - 4;
@@ -869,14 +976,16 @@ function showResult(){
 }
 
 function retry(){
-    if (['curve','zigzag','spring','squarewave','scallop','loop'].includes(G.type)) { pickVariant(); genPath(); }
-    resetDraw();
+    initCanvas();
+    if (['curve','zigzag','spring','squarewave','scallop','loop'].includes(G.type)) { pickVariant(); }
+    genPath(); resetDraw();
     document.getElementById('result-wrap').innerHTML='';
     document.getElementById('instr').textContent='출발에서 시작하여 골인까지 선을 그으세요';
     render();
 }
 
 function goHome(){
+    unlockLandscape();
     gameView.classList.add('hidden'); homeView.classList.remove('hidden');
     lockOrientation('portrait-primary');
 }
